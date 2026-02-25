@@ -13,6 +13,7 @@ popup_height = 240
 popup_bg_color = (227, 176, 35)
 popup_border_color = (64, 41, 41)
 
+
 # bird class
 bird_x = GAME_WIDTH/8 
 bird_y = GAME_HEIGHT/2
@@ -62,6 +63,13 @@ gravity_var = 0.4 # to help make sure the bird doesn't go out of frame
 score = 0
 high_score = 0
 game_over = False
+
+# New game state
+# intro: showing the opening screen
+# playing = game is running 
+
+game_state = "intro"
+intro_btn_rect = pygame.Rect(0, 0, 0, 0)  # placeholder, updated each frame
 
 
 # drawing the image
@@ -179,7 +187,83 @@ def game_over_popup():
    window.blit(score_rendering, score_rect)
    window.blit(reset_rendering, reset_rect)
    window.blit(highest_score_rendering, highest_score_rect)
-  
+   
+
+# Intro screen function - this will be called in the game loop when the game is first opened and when the game is over
+def draw_intro():
+    # Draw background
+    window.blit(background_image, (0, 0))
+
+    # Semi-transparent dark overlay so text is easy to read
+    overlay = pygame.Surface((GAME_WIDTH, GAME_HEIGHT), pygame.SRCALPHA)
+    overlay.fill((0, 0, 0, 160))
+    window.blit(overlay, (0, 0))
+
+    # ---- Title ----
+    title_font = pygame.font.SysFont("Comic Sans MS", 38, bold=True)
+    title_text = title_font.render("Flappy Bird", True, (255, 220, 50))
+    title_rect = title_text.get_rect(center=(GAME_WIDTH // 2, 90))
+    window.blit(title_text, title_rect)
+
+    # Draw bird image centered below title
+    bird_display = pygame.transform.scale(bird_image, (68, 48))  # 2x size for display
+    bird_rect = bird_display.get_rect(center=(GAME_WIDTH // 2, 165))
+    window.blit(bird_display, bird_rect)
+
+    # ---- How to Play heading ----
+    how_font = pygame.font.SysFont("Comic Sans MS", 22, bold=True)
+    how_text = how_font.render("How to Play", True, (255, 255, 255))
+    how_rect = how_text.get_rect(center=(GAME_WIDTH // 2, 230))
+    window.blit(how_text, how_rect)
+
+    # instructions list
+    instructions = [
+        "Press SPACE to make the bird fly up",
+        "Avoid hitting the pipes",
+        "Each pipe you pass you gain 50 points!",
+        "Don't touch the top or bottom!", 
+        "Try not to let flappy fall!",
+        "PRESS SPACE to restart the game!",
+        "MOST IMORTANTLY, HAVE FUN!"
+    ]
+    instr_font = pygame.font.SysFont("Comic Sans MS", 15)
+    for i, line in enumerate(instructions):
+        rendered = instr_font.render(line, True, (220, 220, 220))
+        rect = rendered.get_rect(center=(GAME_WIDTH // 2, 270 + i * 30))
+        window.blit(rendered, rect)
+
+    # ---- Play Now Button ----
+    btn_width, btn_height = 180, 50
+    btn_x = (GAME_WIDTH - btn_width) // 2
+    btn_y = GAME_HEIGHT - 140
+
+    btn_rect = pygame.Rect(btn_x, btn_y, btn_width, btn_height)
+    mouse_pos = pygame.mouse.get_pos()
+
+    # Highlight button on hover
+    if btn_rect.collidepoint(mouse_pos):
+        btn_color = (255, 200, 0)    # brighter yellow on hover
+        text_color = (64, 41, 41)
+    else:
+        btn_color = (227, 176, 35)   # normal yellow
+        text_color = (255, 255, 255)
+
+    pygame.draw.rect(window, btn_color, btn_rect, border_radius=12)
+    pygame.draw.rect(window, (64, 41, 41), btn_rect, 3, border_radius=12)
+
+    btn_font = pygame.font.SysFont("Comic Sans MS", 22, bold=True)
+    btn_text = btn_font.render("PLAY NOW", True, text_color)
+    btn_text_rect = btn_text.get_rect(center=btn_rect.center)
+    window.blit(btn_text, btn_text_rect)
+
+    # ---- Hint below button ----
+    hint_font = pygame.font.SysFont("Comic Sans MS", 14)
+    hint_text = hint_font.render("or press SPACE to start", True, (180, 180, 180))
+    hint_rect = hint_text.get_rect(center=(GAME_WIDTH // 2, btn_y + btn_height + 20))
+    window.blit(hint_text, hint_rect)
+
+    return btn_rect  # return so the game loop can check for clicks
+
 pygame.init() # initialize pygame
 # variable window for the background image to open up
 
@@ -204,21 +288,25 @@ while True:
    # for loop to check all current events
    for event in pygame.event.get():
        # create an exit button when the user clicks on the "X"
-       if event.type == pygame.QUIT:
+        if event.type == pygame.QUIT:
            pygame.quit()
            exit()
-          
-       # every 1.5 second, a new event is created and a pipe is generated
-       if event.type == create_pipes_timer and not game_over:
-           create_pipes()
-  
-       if event.type == pygame.KEYDOWN:
+        if game_state == "intro":
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
+                 game_state = "playing"
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1: # left mouse click
+                if intro_btn_rect.collidepoint(event.pos):
+                    game_state = "playing"
+        elif game_state == "playing":
+            # every 1.5 second, a new event is created and a pipe is generated
+            if event.type == create_pipes_timer and not game_over:
+                create_pipes()
            # determing the key pressed down
-           if event.key == pygame.K_SPACE: # checks if SPACE key is pressed so the bird can go up
-               velocity_y = -6 # bird will go up by -6 frames (TOO MUCH, infinite loop, it'll keep going)
-              
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE: 
+                # checks if SPACE key is pressed so the bird can go up
+                velocity_y = -6 # bird will go up by -6 frames (TOO MUCH, infinite loop, it'll keep going)
                # reset game
-               if game_over:
+                if game_over:
                    bird.y = bird_y
                    pipes.clear()
                    score = 0
@@ -226,16 +314,20 @@ while True:
                    pygame.mixer.music.unpause()
 
               
-   if not game_over:
-       move() 
-       draw()
-   # if the game is OVER, then the popup is triggered and reset back
-   else:
-       draw()
-       game_over_popup()
-  
+# rendering intro screen 
+   # intro screen will be rendered when the game is first opened and when the game is over
+   if game_state == "intro":
+       intro_btn_rect = draw_intro()   # draw intro and capture button rect for click detection
+       
+   elif game_state == "playing":
+        if not game_over:
+           move()
+           draw()
+        else:
+           draw()
+           game_over_popup()
+
    pygame.display.update()
-   # 60 frames per second
    clock.tick(60)
 
 

@@ -10,11 +10,11 @@ GAME_HEIGHT = 640
 popup_width = 280
 popup_height = 240
 
-popup_bg_color = (30, 30, 30)
-popup_border_color = (254, 254, 254)
+popup_bg_color = (227, 176, 35)
+popup_border_color = (64, 41, 41)
 
 # bird class
-bird_x = GAME_WIDTH/8
+bird_x = GAME_WIDTH/8 
 bird_y = GAME_HEIGHT/2
 bird_width = 34 # ratio is 17/12 SIMPLIFIED
 bird_height = 24
@@ -99,9 +99,9 @@ def move():
    for pipe in pipes:
        pipe.x += velocity_x
 
-       # for everytime flappy passes the pipe, the score of 0.5 is added
+       # for everytime flappy passes the pipe, the score of 50 is added
        if not pipe.passed and bird.x > pipe.x + pipe.width:
-           score += 50
+           score += 50 
            pipe.passed = True
        # check for highest score
        if score > high_score:
